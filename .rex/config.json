@@ -1,0 +1,6 @@
+{
+  "schema": "rex/v1",
+  "project": "meta-og-tester",
+  "adapter": "file",
+  "sourcevision": "auto"
+}

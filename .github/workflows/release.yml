@@ -1,0 +1,66 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read manifest version
+        id: manifest
+        run: |
+          VERSION=$(jq -r .version manifest.json)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Extension version: $VERSION"
+
+      - name: Verify tag matches manifest version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          MANIFEST_VERSION="${{ steps.manifest.outputs.version }}"
+          if [ "$TAG_VERSION" != "$MANIFEST_VERSION" ]; then
+            echo "::error::Tag v$TAG_VERSION does not match manifest version $MANIFEST_VERSION. Bump manifest.json before tagging."
+            exit 1
+          fi
+
+      - name: Package extension
+        run: |
+          mkdir -p dist
+          ZIP_NAME="og-meta-analyzer-v${{ steps.manifest.outputs.version }}.zip"
+          zip -r "dist/$ZIP_NAME" manifest.json popup.html popup.css popup.js icons/
+          echo "zip_name=$ZIP_NAME" >> "$GITHUB_ENV"
+          unzip -l "dist/$ZIP_NAME"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: og-meta-analyzer-v${{ steps.manifest.outputs.version }}
+          path: dist/*.zip
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          generate_release_notes: true
+          body: |
+            ## Install (unpacked / developer mode)
+
+            1. Download `${{ env.zip_name }}` below.
+            2. Unzip it to a folder.
+            3. Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and select the unzipped folder.
+
+            ## Install from the Chrome Web Store
+
+            Listing coming soon — until then, use the unpacked install above.

@@ -1,2 +1,15 @@
 .rex/n-dx_workflow.md
 .rex/execution-log*.jsonl
+
+# Local dev-tool state
+.sourcevision/
+
+# Build artifacts
+dist/
+*.zip
+
+# OS / editor junk
+.DS_Store
+.idea/
+.vscode/
+node_modules/

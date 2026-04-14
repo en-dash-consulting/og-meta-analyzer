@@ -1,0 +1,6 @@
+{
+  "llm": {
+    "vendor": "claude"
+  },
+  "_initVersion": "0.2.2"
+}
