@@ -1,9 +1,11 @@
 const contentEl = document.getElementById('content');
 const urlEl = document.getElementById('page-url');
+const refreshBtn = document.getElementById('refresh-btn');
 const tabs = document.querySelectorAll('.tab');
 
 let pageData = null;
 let activeTab = 'previews';
+let cacheBust = 0;
 
 tabs.forEach(t => {
   t.addEventListener('click', () => {
@@ -11,6 +13,18 @@ tabs.forEach(t => {
     activeTab = t.dataset.tab;
     render();
   });
+});
+
+refreshBtn.addEventListener('click', async () => {
+  cacheBust = Date.now();
+  refreshBtn.disabled = true;
+  refreshBtn.classList.add('refreshing');
+  try {
+    await init();
+  } finally {
+    refreshBtn.disabled = false;
+    setTimeout(() => refreshBtn.classList.remove('refreshing'), 400);
+  }
 });
 
 init();
@@ -111,6 +125,17 @@ function resolveUrl(maybeUrl, base) {
 
 function getDomain(url) {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; }
+}
+
+function bustCache(url) {
+  if (!url || !cacheBust) return url;
+  try {
+    const u = new URL(url);
+    u.searchParams.set('_cb', String(cacheBust));
+    return u.href;
+  } catch {
+    return url + (url.includes('?') ? '&' : '?') + '_cb=' + cacheBust;
+  }
 }
 
 // --- Validation ---
@@ -387,8 +412,9 @@ function renderPreviews(data) {
 }
 
 function cardBlock(label, variant, c) {
+  const imgSrc = bustCache(c.image);
   const imgHtml = c.image
-    ? `<img src="${escapeHtml(c.image)}" alt="" data-card-img>`
+    ? `<img src="${escapeHtml(imgSrc)}" alt="" data-card-img>`
     : `<span>no og:image</span>`;
   const placeholderClass = c.image ? '' : ' placeholder';
   return `<div class="preview-section">
@@ -399,7 +425,7 @@ function cardBlock(label, variant, c) {
         <div class="card-domain">${escapeHtml(getDomain(c.url) || c.siteName || '')}</div>
         <div class="card-title">${escapeHtml(c.title || 'No title')}</div>
         <p class="card-desc">${escapeHtml(c.description || 'No description')}</p>
-        ${c.image ? `<div class="image-meta" data-image-meta="${escapeHtml(c.image)}">checking image…</div>` : ''}
+        ${c.image ? `<div class="image-meta" data-image-meta="${escapeHtml(imgSrc)}">checking image…</div>` : ''}
       </div>
     </div>
   </div>`;
