@@ -154,20 +154,37 @@ function validatePresent(value) {
     : { level: 'bad', text: 'missing' };
 }
 
+function hasImageExtension(url) {
+  if (!url) return false;
+  try {
+    const path = new URL(url).pathname;
+    return /\.(jpe?g|png|gif|webp|svg|avif)$/i.test(path);
+  } catch {
+    return /\.(jpe?g|png|gif|webp|svg|avif)(?:[?#]|$)/i.test(url);
+  }
+}
+
+function validateImageUrl(value) {
+  if (!value) return { level: 'bad', text: 'missing' };
+  if (!hasImageExtension(value)) return { level: 'warn', text: 'no file extension (use .jpg/.png/.webp)' };
+  return { level: 'ok', text: 'present' };
+}
+
 // --- Tab: Open Graph ---
 
 function renderOpenGraph(data) {
   const fields = [
     { key: 'og:title', required: true, validate: v => validateLength(v, 30, 90) },
     { key: 'og:type', required: true, validate: validatePresent, note: 'e.g. website, article' },
-    { key: 'og:image', required: true, validate: validatePresent },
+    { key: 'og:image', required: true, validate: validateImageUrl },
     { key: 'og:url', required: true, validate: validatePresent },
     { key: 'og:description', required: false, validate: v => validateLength(v, 50, 200) },
     { key: 'og:site_name', required: false, validate: validatePresent },
     { key: 'og:locale', required: false, validate: validatePresent },
     { key: 'og:image:alt', required: false, validate: validatePresent },
     { key: 'og:image:width', required: false, validate: validatePresent },
-    { key: 'og:image:height', required: false, validate: validatePresent }
+    { key: 'og:image:height', required: false, validate: validatePresent },
+    { key: 'og:logo', required: false, validate: validateImageUrl, note: 'site logo URL' }
   ];
   return renderFieldList('Open Graph', fields, k => metaByProperty(data.metas, k)?.content);
 }
@@ -179,7 +196,7 @@ function renderTwitter(data) {
     { key: 'twitter:card', required: true, validate: validatePresent, note: 'summary, summary_large_image, app, player' },
     { key: 'twitter:title', required: false, validate: v => validateLength(v, 30, 70), note: 'falls back to og:title' },
     { key: 'twitter:description', required: false, validate: v => validateLength(v, 50, 200), note: 'falls back to og:description' },
-    { key: 'twitter:image', required: false, validate: validatePresent, note: 'falls back to og:image' },
+    { key: 'twitter:image', required: false, validate: validateImageUrl, note: 'falls back to og:image' },
     { key: 'twitter:image:alt', required: false, validate: validatePresent },
     { key: 'twitter:site', required: false, validate: validatePresent, note: '@username of website' },
     { key: 'twitter:creator', required: false, validate: validatePresent, note: '@username of author' }
@@ -289,8 +306,9 @@ function buildFixPrompt(data) {
   lines.push('1. Return a single fenced HTML block containing every <meta>/<link>/<title> tag that should appear in <head>, in the order they should appear.');
   lines.push('2. Fill in plausible, high-quality values inferred from the page URL and existing content. If you genuinely cannot infer a value, use a clearly-marked TODO placeholder like content="TODO: short description (50–160 chars)".');
   lines.push('3. Respect recommended length ranges: <title> 10–60 chars, meta description 50–160, og:title 30–90, og:description 50–200, twitter:title ≤70.');
-  lines.push('4. Always include: <title>, meta description, canonical, viewport, charset, og:title, og:type, og:image (1200×630 recommended), og:url, og:description, og:site_name, twitter:card (summary_large_image when an image is present), twitter:title, twitter:description, twitter:image.');
-  lines.push('5. After the HTML block, add a short bulleted "Notes" section explaining any non-obvious choices and listing every TODO the user still needs to fill in.');
+  lines.push('4. Always include: <title>, meta description, canonical, viewport, charset, og:title, og:type, og:image (1200×630 recommended), og:url, og:description, og:site_name, og:logo, twitter:card (summary_large_image when an image is present), twitter:title, twitter:description, twitter:image.');
+  lines.push('5. All image URLs (og:image, og:logo, twitter:image) MUST end in an explicit file extension (.jpg, .jpeg, .png, .webp, .gif, .svg, or .avif). Some scrapers reject extensionless URLs.');
+  lines.push('6. After the HTML block, add a short bulleted "Notes" section explaining any non-obvious choices and listing every TODO the user still needs to fill in.');
   return { prompt: lines.join('\n'), issueCount: issues.length };
 }
 
@@ -299,7 +317,7 @@ function collectCurrentTags(data) {
   const wanted = [
     'description', 'robots', 'viewport',
     'og:title', 'og:type', 'og:image', 'og:url', 'og:description',
-    'og:site_name', 'og:locale', 'og:image:alt', 'og:image:width', 'og:image:height',
+    'og:site_name', 'og:locale', 'og:image:alt', 'og:image:width', 'og:image:height', 'og:logo',
     'twitter:card', 'twitter:title', 'twitter:description', 'twitter:image',
     'twitter:image:alt', 'twitter:site', 'twitter:creator'
   ];
@@ -327,17 +345,18 @@ function collectIssues(data) {
   const ogChecks = [
     { field: 'og:title', required: true, validate: v => validateLength(v, 30, 90) },
     { field: 'og:type', required: true, validate: validatePresent },
-    { field: 'og:image', required: true, validate: validatePresent },
+    { field: 'og:image', required: true, validate: validateImageUrl },
     { field: 'og:url', required: true, validate: validatePresent },
     { field: 'og:description', required: false, validate: v => validateLength(v, 50, 200) },
     { field: 'og:site_name', required: false, validate: validatePresent },
-    { field: 'og:image:alt', required: false, validate: validatePresent }
+    { field: 'og:image:alt', required: false, validate: validatePresent },
+    { field: 'og:logo', required: false, validate: validateImageUrl }
   ];
   const twChecks = [
     { field: 'twitter:card', required: true, validate: validatePresent },
     { field: 'twitter:title', required: false, validate: v => validateLength(v, 30, 70) },
     { field: 'twitter:description', required: false, validate: v => validateLength(v, 50, 200) },
-    { field: 'twitter:image', required: false, validate: validatePresent }
+    { field: 'twitter:image', required: false, validate: validateImageUrl }
   ];
 
   for (const c of seoChecks) addIssue(issues, c.field, c.value, c.validate(c.value), true);
