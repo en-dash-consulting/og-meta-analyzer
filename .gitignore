@@ -13,3 +13,5 @@ dist/
 .idea/
 .vscode/
 node_modules/
+.rex/prd.json.backup-*
+.rex/prd.json.migrated

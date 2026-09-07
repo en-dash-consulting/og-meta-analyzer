@@ -34,8 +34,8 @@ Capture screenshots by opening the extension on a well-tagged public site (e.g.,
 
 ### Privacy
 
-- [ ] **Privacy policy URL** — required if the extension "handles user data". This one only reads tags from the current tab and sends them to the clipboard (user-initiated). You still need a privacy policy page. Host at `https://endash.us/og-meta-analyzer/privacy` or similar, linking to a page that says:
-  > This extension reads `<meta>` and `<link>` tags from the page you are currently viewing when you open the popup. It does not transmit any data to any server, does not use analytics, and does not use cookies. Content is only copied to your clipboard when you click a copy button.
+- [x] **Privacy policy** — the policy text lives in [`PRIVACY.md`](../PRIVACY.md). Use `https://github.com/en-dash-consulting/og-meta-analyzer/blob/main/PRIVACY.md` as the privacy policy URL (or host a copy at `https://endash.us/og-meta-analyzer/privacy`).
+- [ ] **Data usage disclosures** — in the dev console "Privacy practices" tab, certify that the extension does **not** collect or use any user data, does not sell data, and does not use data for unrelated purposes.
 - [ ] **Permission justifications** — you'll be asked to justify each permission in `manifest.json`:
   - `activeTab` — "Needed to read `<meta>` and `<link>` tags from the page the user is currently viewing when they open the popup."
   - `scripting` — "Needed to execute a one-shot DOM read on the active tab to collect `<meta>` and `<link>` tags for display in the popup."

@@ -2,6 +2,8 @@
   "manifest_version": 3,
   "name": "Meta & Open Graph Tester",
   "version": "0.1.0",
+  "minimum_chrome_version": "92",
+  "homepage_url": "https://github.com/en-dash-consulting/og-meta-analyzer",
   "description": "Inspect meta, Open Graph, and Twitter Card tags on the current page, with link previews and validation.",
   "permissions": ["activeTab", "scripting"],
   "action": {

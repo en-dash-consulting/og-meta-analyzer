@@ -7,11 +7,25 @@ let pageData = null;
 let activeTab = 'previews';
 let cacheBust = 0;
 
-tabs.forEach(t => {
-  t.addEventListener('click', () => {
-    tabs.forEach(x => x.classList.toggle('active', x === t));
-    activeTab = t.dataset.tab;
-    render();
+function selectTab(t) {
+  tabs.forEach(x => {
+    const on = x === t;
+    x.classList.toggle('active', on);
+    x.setAttribute('aria-selected', on ? 'true' : 'false');
+    x.tabIndex = on ? 0 : -1;
+  });
+  activeTab = t.dataset.tab;
+  render();
+}
+
+tabs.forEach((t, i) => {
+  t.addEventListener('click', () => selectTab(t));
+  t.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    e.preventDefault();
+    const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+    next.focus();
+    selectTab(next);
   });
 });
 
@@ -35,7 +49,7 @@ async function init() {
     if (!tab?.id) throw new Error('No active tab');
     if (!/^https?:/.test(tab.url || '')) {
       urlEl.textContent = tab.url || '';
-      contentEl.innerHTML = `<div class="error">This page can't be inspected (chrome:// or extension page).</div>`;
+      contentEl.innerHTML = `<div class="error">This page can't be inspected. Only http:// and https:// pages are supported (not chrome://, file://, the Web Store, or other extensions).</div>`;
       return;
     }
     urlEl.textContent = tab.url;
@@ -54,7 +68,7 @@ async function init() {
 function scrapePage() {
   const metas = [...document.querySelectorAll('meta')].map(m => {
     const attrs = {};
-    for (const a of m.attributes) attrs[a.name] = a.value;
+    for (const a of m.attributes) attrs[a.name] = a.value.trim();
     return attrs;
   });
   const links = [...document.querySelectorAll('link[rel]')].map(l => ({
@@ -65,7 +79,7 @@ function scrapePage() {
   }));
   return {
     url: location.href,
-    title: document.title,
+    title: (document.title || '').trim(),
     lang: document.documentElement.lang || null,
     metas,
     links
@@ -164,10 +178,27 @@ function hasImageExtension(url) {
   }
 }
 
+function isAbsoluteHttpUrl(value) {
+  try { return /^https?:$/.test(new URL(value).protocol); } catch { return false; }
+}
+
+function validateAbsoluteUrl(value) {
+  if (!value) return { level: 'bad', text: 'missing' };
+  if (!isAbsoluteHttpUrl(value)) return { level: 'warn', text: 'should be an absolute http(s) URL' };
+  return { level: 'ok', text: 'present' };
+}
+
 function validateImageUrl(value) {
   if (!value) return { level: 'bad', text: 'missing' };
+  if (!isAbsoluteHttpUrl(value)) return { level: 'warn', text: 'should be an absolute http(s) URL (scrapers ignore relative paths)' };
   if (!hasImageExtension(value)) return { level: 'warn', text: 'no file extension (use .jpg/.png/.webp)' };
   return { level: 'ok', text: 'present' };
+}
+
+function validateRobots(value) {
+  if (!value) return { level: 'ok', text: 'default (index, follow)' };
+  if (/\b(noindex|none)\b/i.test(value)) return { level: 'warn', text: `${value} — page will not be indexed` };
+  return { level: 'ok', text: value };
 }
 
 // --- Tab: Open Graph ---
@@ -177,7 +208,7 @@ function renderOpenGraph(data) {
     { key: 'og:title', required: true, validate: v => validateLength(v, 30, 90) },
     { key: 'og:type', required: true, validate: validatePresent, note: 'e.g. website, article' },
     { key: 'og:image', required: true, validate: validateImageUrl },
-    { key: 'og:url', required: true, validate: validatePresent },
+    { key: 'og:url', required: true, validate: validateAbsoluteUrl },
     { key: 'og:description', required: false, validate: v => validateLength(v, 50, 200) },
     { key: 'og:site_name', required: false, validate: validatePresent },
     { key: 'og:locale', required: false, validate: validatePresent },
@@ -218,7 +249,7 @@ function renderSEO(data) {
     renderFieldRow('title', data.title, validateLength(data.title, 10, 60), '10–60 chars recommended'),
     renderFieldRow('description', description, validateLength(description, 50, 160), '50–160 chars recommended'),
     renderFieldRow('canonical', canonical, validatePresent(canonical)),
-    renderFieldRow('robots', robots, robots ? { level: 'ok', text: robots } : { level: 'warn', text: 'default (index, follow)' }),
+    renderFieldRow('robots', robots, validateRobots(robots)),
     renderFieldRow('viewport', viewport, validatePresent(viewport)),
     renderFieldRow('charset', charset, validatePresent(charset)),
     renderFieldRow('lang', data.lang, validatePresent(data.lang), 'on <html> element')
@@ -340,13 +371,14 @@ function collectIssues(data) {
     { field: 'meta description', value: metaByName(data.metas, 'description')?.content, validate: v => validateLength(v, 50, 160) },
     { field: 'link[rel=canonical]', value: data.links.find(l => l.rel === 'canonical')?.href, validate: validatePresent },
     { field: 'meta viewport', value: metaByName(data.metas, 'viewport')?.content, validate: validatePresent },
-    { field: 'html[lang]', value: data.lang, validate: validatePresent }
+    { field: 'html[lang]', value: data.lang, validate: validatePresent },
+    { field: 'meta robots', value: metaByName(data.metas, 'robots')?.content, validate: validateRobots }
   ];
   const ogChecks = [
     { field: 'og:title', required: true, validate: v => validateLength(v, 30, 90) },
     { field: 'og:type', required: true, validate: validatePresent },
     { field: 'og:image', required: true, validate: validateImageUrl },
-    { field: 'og:url', required: true, validate: validatePresent },
+    { field: 'og:url', required: true, validate: validateAbsoluteUrl },
     { field: 'og:description', required: false, validate: v => validateLength(v, 50, 200) },
     { field: 'og:site_name', required: false, validate: validatePresent },
     { field: 'og:image:alt', required: false, validate: validatePresent },
@@ -420,7 +452,7 @@ function renderPreviews(data) {
 
   const twTitle = tw('twitter:title') || title;
   const twDesc = tw('twitter:description') || description;
-  const twImage = resolveUrl(tw('twitter:image'), data.url) || image;
+  const twImage = resolveUrl(tw('twitter:image') || tw('twitter:image:src'), data.url) || image;
   const twCard = tw('twitter:card') || 'summary';
 
   return `
@@ -465,7 +497,8 @@ function attachImageHandlers() {
 function renderFieldList(label, fields, getter) {
   const rows = fields.map(f => {
     const value = getter(f.key);
-    const result = f.validate(value);
+    let result = f.validate(value);
+    if (!value && !f.required) result = { level: 'warn', text: 'missing (optional)' };
     return renderFieldRow(f.key, value, result, f.note);
   });
   return `<div class="section">

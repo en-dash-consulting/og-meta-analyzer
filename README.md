@@ -33,7 +33,7 @@ cd og-meta-analyzer
 
 ## Usage
 
-Click the extension icon on any `http://` or `https://` page. The popup opens with five tabs:
+Click the extension icon on any `http://` or `https://` page. The popup opens with six tabs:
 
 - **Previews** — social-card mockups.
 - **Open Graph** / **Twitter** / **SEO** — per-tag status.
@@ -58,6 +58,10 @@ This is a zero-build Manifest V3 extension — just HTML, CSS, and JS. To work o
 ## Publishing to the Chrome Web Store
 
 See [`docs/PUBLISHING.md`](docs/PUBLISHING.md) for the submission checklist and [`docs/store-listing.md`](docs/store-listing.md) for ready-to-paste listing copy.
+
+## Privacy
+
+Everything runs locally. The extension reads tags from the current tab only when you open the popup and never sends data anywhere. See [`PRIVACY.md`](PRIVACY.md).
 
 ## License
 
