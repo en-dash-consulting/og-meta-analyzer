@@ -36,7 +36,7 @@ No signup. No tracking. No servers. Everything runs locally in your browser.
 
 **Live previews.** See faithful mockups of Facebook/LinkedIn cards, Twitter summary and large-image cards, and Slack/Discord unfurls — rendered from the page's actual tags, with the actual image, at the actual dimensions.
 
-**Per-tag validation.** Dedicated tabs for Open Graph, Twitter Card, and SEO essentials (title, meta description, canonical, viewport, charset, `<html lang>`, robots). Each field is checked against recommended length ranges and required-field rules.
+**Per-tag validation.** Dedicated tabs for Open Graph, Twitter Card, and SEO essentials (title, meta description, canonical, viewport, charset, `<html lang>`, robots, favicon). Each field is checked against recommended length ranges, required-field rules, and value formats — relative or extensionless image URLs, non-standard `og:type`, malformed `og:locale`, missing `@` on Twitter handles, `noindex` robots, canonical mismatches, and duplicate tags. Issue counts appear right on the tabs.
 
 **Every tag at a glance.** The "All" tab shows every `<meta>` and `<link rel>` on the page in a compact, searchable list — with one-click copy on every value.
 

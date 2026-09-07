@@ -352,8 +352,50 @@ main {
   overflow: hidden;
 }
 
-/* Twitter card variant */
-.card.twitter .card-image.placeholder { aspect-ratio: 2 / 1; }
+/* X / Twitter card variants */
+.card.x-large .card-image { position: relative; }
+.card.x-large .card-image.placeholder { aspect-ratio: 1.91 / 1; }
+.card-overlay {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  max-width: calc(100% - 24px);
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.77);
+  color: #fff;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.card-body.compact { padding: 6px 12px 8px; }
+.card-hint {
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--text-faint);
+  line-height: 1.4;
+}
+
+.card.x-summary {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+}
+.card.x-summary .card-image {
+  width: 120px;
+  height: 120px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-right: 1px solid var(--border);
+}
+.card.x-summary .card-image.placeholder { aspect-ratio: 1; }
+.card.x-summary .card-image img,
+.card.slack .card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.card.x-summary .card-body { padding: 10px 12px; align-self: center; }
 
 /* Slack card variant */
 .card.slack {
@@ -367,6 +409,7 @@ main {
   aspect-ratio: 1;
   width: 80px;
   height: 80px;
+  overflow: hidden;
 }
 
 .card.slack .card-image.placeholder { aspect-ratio: 1; }
@@ -425,6 +468,38 @@ main {
   color: var(--text-faint);
   font-family: var(--mono);
 }
+.image-meta.warn { color: var(--warn); }
+
+/* Tab issue badges */
+.tab-badge {
+  display: inline-block;
+  min-width: 16px;
+  padding: 0 5px;
+  margin-left: 5px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+  color: #fff;
+  vertical-align: 1px;
+}
+.tab-badge.bad { background: var(--bad); }
+.tab-badge.warn { background: var(--warn); }
+
+/* All-tab filter */
+.filter-input {
+  width: 100%;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-elev);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.filter-input:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
 
 /* Keyboard focus */
 .tab:focus-visible, .refresh-btn:focus-visible, .copy-btn:focus-visible, .copy-prompt-btn:focus-visible {

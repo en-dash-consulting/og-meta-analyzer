@@ -6,6 +6,7 @@ const tabs = document.querySelectorAll('.tab');
 let pageData = null;
 let activeTab = 'previews';
 let cacheBust = 0;
+let allFilter = '';
 
 function selectTab(t) {
   tabs.forEach(x => {
@@ -53,14 +54,19 @@ async function init() {
       return;
     }
     urlEl.textContent = tab.url;
+    urlEl.title = tab.url;
     const [{ result }] = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: scrapePage
     });
+    if (!result) throw new Error('The page returned no data. Try reloading it.');
     pageData = result;
     render();
   } catch (err) {
-    contentEl.innerHTML = `<div class="error">Failed to read page: ${escapeHtml(err.message)}</div>`;
+    const msg = /cannot access|cannot be scripted|extensions gallery/i.test(err.message || '')
+      ? 'Chrome does not allow extensions to read this page.'
+      : err.message;
+    contentEl.innerHTML = `<div class="error">Failed to read page: ${escapeHtml(msg)}</div>`;
   }
 }
 
@@ -100,7 +106,9 @@ function render() {
   attachCopyHandlers();
   attachImageHandlers();
   attachPromptCopyHandler();
+  attachFilterHandler();
   loadImageMeta();
+  updateTabBadges();
 }
 
 // --- Helpers ---
@@ -122,6 +130,18 @@ function metaByTwitter(metas, key) {
   return getMeta(metas, m => m.name === key || m.property === key);
 }
 
+function countOg(metas, prop) {
+  return metas.filter(m => m.property === prop).length;
+}
+
+function countTwitter(metas, key) {
+  return metas.filter(m => m.name === key || m.property === key).length;
+}
+
+function findLink(links, relPattern) {
+  return links.find(l => relPattern.test(l.rel || '')) || null;
+}
+
 function escapeHtml(s) {
   if (s == null) return '';
   return String(s)
@@ -141,6 +161,16 @@ function getDomain(url) {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; }
 }
 
+function normalizeUrl(url) {
+  try {
+    const u = new URL(url);
+    u.hash = '';
+    return u.href.replace(/\/$/, '');
+  } catch {
+    return url || '';
+  }
+}
+
 function bustCache(url) {
   if (!url || !cacheBust) return url;
   try {
@@ -152,10 +182,20 @@ function bustCache(url) {
   }
 }
 
+function truncate(s, n) {
+  s = String(s);
+  return s.length > n ? s.slice(0, n - 1) + '…' : s;
+}
+
 // --- Validation ---
 
+const OK = { level: 'ok', text: 'present' };
+const MISSING = { level: 'bad', text: 'missing' };
+const TWITTER_CARD_TYPES = ['summary', 'summary_large_image', 'app', 'player'];
+const OG_TYPE_RE = /^(website|article|book|profile|music\.(song|album|playlist|radio_station)|video\.(movie|episode|tv_show|other))$/i;
+
 function validateLength(value, min, max) {
-  if (!value) return { level: 'bad', text: 'missing' };
+  if (!value) return MISSING;
   const len = value.length;
   if (len < min) return { level: 'warn', text: `${len} chars (min ~${min})` };
   if (len > max) return { level: 'warn', text: `${len} chars (max ~${max})` };
@@ -163,18 +203,14 @@ function validateLength(value, min, max) {
 }
 
 function validatePresent(value) {
-  return value
-    ? { level: 'ok', text: 'present' }
-    : { level: 'bad', text: 'missing' };
+  return value ? OK : MISSING;
 }
 
 function hasImageExtension(url) {
-  if (!url) return false;
   try {
-    const path = new URL(url).pathname;
-    return /\.(jpe?g|png|gif|webp|svg|avif)$/i.test(path);
+    return /\.(jpe?g|png|gif|webp|svg|avif)$/i.test(new URL(url).pathname);
   } catch {
-    return /\.(jpe?g|png|gif|webp|svg|avif)(?:[?#]|$)/i.test(url);
+    return /\.(jpe?g|png|gif|webp|svg|avif)(?:[?#]|$)/i.test(url || '');
   }
 }
 
@@ -183,16 +219,18 @@ function isAbsoluteHttpUrl(value) {
 }
 
 function validateAbsoluteUrl(value) {
-  if (!value) return { level: 'bad', text: 'missing' };
+  if (!value) return MISSING;
   if (!isAbsoluteHttpUrl(value)) return { level: 'warn', text: 'should be an absolute http(s) URL' };
-  return { level: 'ok', text: 'present' };
+  return OK;
 }
 
 function validateImageUrl(value) {
-  if (!value) return { level: 'bad', text: 'missing' };
+  if (!value) return MISSING;
   if (!isAbsoluteHttpUrl(value)) return { level: 'warn', text: 'should be an absolute http(s) URL (scrapers ignore relative paths)' };
+  if (value.startsWith('http:')) return { level: 'warn', text: 'served over http; use https so it is not blocked' };
+  if (/\.svg$/i.test(new URL(value).pathname)) return { level: 'warn', text: 'SVG is not supported by most social scrapers; use .jpg/.png/.webp' };
   if (!hasImageExtension(value)) return { level: 'warn', text: 'no file extension (use .jpg/.png/.webp)' };
-  return { level: 'ok', text: 'present' };
+  return OK;
 }
 
 function validateRobots(value) {
@@ -201,60 +239,108 @@ function validateRobots(value) {
   return { level: 'ok', text: value };
 }
 
+function validateOneOf(value, allowed) {
+  if (!value) return MISSING;
+  return allowed.includes(value.toLowerCase())
+    ? OK
+    : { level: 'warn', text: `unknown value (expected ${allowed.join(', ')})` };
+}
+
+function validateOgType(value) {
+  if (!value) return MISSING;
+  return OG_TYPE_RE.test(value) ? OK : { level: 'warn', text: 'non-standard type (website or article is safest)' };
+}
+
+function validateLocale(value) {
+  if (!value) return MISSING;
+  return /^[a-z]{2,3}_[A-Z]{2}$/.test(value) ? OK : { level: 'warn', text: 'expected format like en_US' };
+}
+
+function validateHandle(value) {
+  if (!value) return MISSING;
+  return /^@[A-Za-z0-9_]{1,15}$/.test(value) ? OK : { level: 'warn', text: 'should be an @handle' };
+}
+
+function validateInteger(value) {
+  if (!value) return MISSING;
+  return /^\d+$/.test(value) ? OK : { level: 'warn', text: 'should be a whole number of pixels' };
+}
+
+function validateCanonical(value, pageUrl) {
+  if (!value) return MISSING;
+  if (!isAbsoluteHttpUrl(value)) return { level: 'warn', text: 'should be an absolute http(s) URL' };
+  if (normalizeUrl(value) !== normalizeUrl(pageUrl)) return { level: 'warn', text: 'differs from the current URL — make sure that is intentional' };
+  return { level: 'ok', text: 'matches page URL' };
+}
+
+function validateFavicon(value) {
+  return value ? OK : { level: 'warn', text: 'none declared (browsers fall back to /favicon.ico)' };
+}
+
 // --- Tab: Open Graph ---
 
-function renderOpenGraph(data) {
-  const fields = [
+function ogFields() {
+  return [
     { key: 'og:title', required: true, validate: v => validateLength(v, 30, 90) },
-    { key: 'og:type', required: true, validate: validatePresent, note: 'e.g. website, article' },
-    { key: 'og:image', required: true, validate: validateImageUrl },
+    { key: 'og:type', required: true, validate: validateOgType, note: 'e.g. website, article' },
+    { key: 'og:image', required: true, validate: validateImageUrl, note: '1200×630 recommended' },
     { key: 'og:url', required: true, validate: validateAbsoluteUrl },
     { key: 'og:description', required: false, validate: v => validateLength(v, 50, 200) },
     { key: 'og:site_name', required: false, validate: validatePresent },
-    { key: 'og:locale', required: false, validate: validatePresent },
+    { key: 'og:locale', required: false, validate: validateLocale },
     { key: 'og:image:alt', required: false, validate: validatePresent },
-    { key: 'og:image:width', required: false, validate: validatePresent },
-    { key: 'og:image:height', required: false, validate: validatePresent },
+    { key: 'og:image:width', required: false, validate: validateInteger },
+    { key: 'og:image:height', required: false, validate: validateInteger },
     { key: 'og:logo', required: false, validate: validateImageUrl, note: 'site logo URL' }
   ];
-  return renderFieldList('Open Graph', fields, k => metaByProperty(data.metas, k)?.content);
+}
+
+function renderOpenGraph(data) {
+  return renderFieldList('Open Graph', ogFields(),
+    k => metaByProperty(data.metas, k)?.content,
+    k => countOg(data.metas, k));
 }
 
 // --- Tab: Twitter ---
 
-function renderTwitter(data) {
-  const fields = [
-    { key: 'twitter:card', required: true, validate: validatePresent, note: 'summary, summary_large_image, app, player' },
+function twitterFields() {
+  return [
+    { key: 'twitter:card', required: true, validate: v => validateOneOf(v, TWITTER_CARD_TYPES), note: 'summary, summary_large_image, app, player' },
     { key: 'twitter:title', required: false, validate: v => validateLength(v, 30, 70), note: 'falls back to og:title' },
     { key: 'twitter:description', required: false, validate: v => validateLength(v, 50, 200), note: 'falls back to og:description' },
     { key: 'twitter:image', required: false, validate: validateImageUrl, note: 'falls back to og:image' },
     { key: 'twitter:image:alt', required: false, validate: validatePresent },
-    { key: 'twitter:site', required: false, validate: validatePresent, note: '@username of website' },
-    { key: 'twitter:creator', required: false, validate: validatePresent, note: '@username of author' }
+    { key: 'twitter:site', required: false, validate: validateHandle, note: '@username of website' },
+    { key: 'twitter:creator', required: false, validate: validateHandle, note: '@username of author' }
   ];
-  return renderFieldList('Twitter Card', fields, k => metaByTwitter(data.metas, k)?.content);
+}
+
+function renderTwitter(data) {
+  return renderFieldList('Twitter Card', twitterFields(),
+    k => metaByTwitter(data.metas, k)?.content,
+    k => countTwitter(data.metas, k));
 }
 
 // --- Tab: SEO ---
 
-function renderSEO(data) {
-  const description = metaByName(data.metas, 'description')?.content;
-  const robots = metaByName(data.metas, 'robots')?.content;
-  const viewport = metaByName(data.metas, 'viewport')?.content;
-  const canonical = data.links.find(l => l.rel === 'canonical')?.href;
+function seoChecks(data) {
   const charset = data.metas.find(m => m.charset)?.charset
     || data.metas.find(m => (m['http-equiv'] || '').toLowerCase() === 'content-type')?.content;
-
-  const rows = [
-    renderFieldRow('title', data.title, validateLength(data.title, 10, 60), '10–60 chars recommended'),
-    renderFieldRow('description', description, validateLength(description, 50, 160), '50–160 chars recommended'),
-    renderFieldRow('canonical', canonical, validatePresent(canonical)),
-    renderFieldRow('robots', robots, validateRobots(robots)),
-    renderFieldRow('viewport', viewport, validatePresent(viewport)),
-    renderFieldRow('charset', charset, validatePresent(charset)),
-    renderFieldRow('lang', data.lang, validatePresent(data.lang), 'on <html> element')
+  const favicon = findLink(data.links, /(^|\s)(icon|shortcut icon|apple-touch-icon)(\s|$)/i)?.href;
+  return [
+    { field: '<title>', label: 'title', value: data.title, validate: v => validateLength(v, 10, 60), note: '10–60 chars recommended' },
+    { field: 'meta description', label: 'description', value: metaByName(data.metas, 'description')?.content, validate: v => validateLength(v, 50, 160), note: '50–160 chars recommended' },
+    { field: 'link[rel=canonical]', label: 'canonical', value: data.links.find(l => l.rel === 'canonical')?.href, validate: v => validateCanonical(v, data.url) },
+    { field: 'meta robots', label: 'robots', value: metaByName(data.metas, 'robots')?.content, validate: validateRobots },
+    { field: 'meta viewport', label: 'viewport', value: metaByName(data.metas, 'viewport')?.content, validate: validatePresent },
+    { field: 'charset', label: 'charset', value: charset, validate: validatePresent },
+    { field: 'html[lang]', label: 'lang', value: data.lang, validate: validatePresent, note: 'on <html> element' },
+    { field: 'link[rel=icon]', label: 'favicon', value: favicon, validate: validateFavicon }
   ];
+}
 
+function renderSEO(data) {
+  const rows = seoChecks(data).map(c => renderFieldRow(c.label, c.value, c.validate(c.value), c.note));
   return `<div class="section">
     <div class="section-title">SEO Essentials</div>
     ${rows.join('')}
@@ -264,27 +350,50 @@ function renderSEO(data) {
 // --- Tab: All ---
 
 function renderAll(data) {
-  const rows = [];
+  const entries = [];
 
-  rows.push(tagRow('title', data.title));
-  if (data.lang) rows.push(tagRow('html[lang]', data.lang));
+  entries.push(['title', data.title]);
+  if (data.lang) entries.push(['html[lang]', data.lang]);
 
   for (const m of data.metas) {
     const key = m.property || m.name || m['http-equiv'] || (m.charset ? 'charset' : '(meta)');
     const value = m.content || m.charset || '';
-    rows.push(tagRow(key, value));
+    entries.push([key, value]);
   }
 
   for (const l of data.links) {
     const sub = [l.type, l.sizes].filter(Boolean).join(' · ');
     const key = sub ? `link[${l.rel}] ${sub}` : `link[${l.rel}]`;
-    rows.push(tagRow(key, l.href));
+    entries.push([key, l.href]);
   }
 
+  const q = allFilter.trim().toLowerCase();
+  const shown = q
+    ? entries.filter(([k, v]) => k.toLowerCase().includes(q) || String(v || '').toLowerCase().includes(q))
+    : entries;
+  const rows = shown.map(([k, v]) => tagRow(k, v));
+  const count = q ? `${shown.length} of ${entries.length}` : String(entries.length);
+
   return `<div class="section">
-    <div class="section-title">All Tags <span class="count">${rows.length}</span></div>
-    <div class="tag-list">${rows.join('')}</div>
+    <div class="section-title">All Tags <span class="count">${escapeHtml(count)}</span></div>
+    <input class="filter-input" id="all-filter" type="search" placeholder="Filter by name or value…" value="${escapeHtml(allFilter)}" aria-label="Filter tags" autocomplete="off">
+    <div class="tag-list">${rows.join('') || '<div class="empty">No tags match.</div>'}</div>
   </div>`;
+}
+
+function attachFilterHandler() {
+  const input = contentEl.querySelector('#all-filter');
+  if (!input) return;
+  input.addEventListener('input', () => {
+    allFilter = input.value;
+    const pos = input.selectionStart;
+    render();
+    const next = contentEl.querySelector('#all-filter');
+    if (next) {
+      next.focus();
+      next.setSelectionRange(pos, pos);
+    }
+  });
 }
 
 // --- Tab: Fix (LLM prompt) ---
@@ -301,7 +410,7 @@ function renderFix(data) {
     <div class="fix-actions">
       <button class="copy-prompt-btn" data-copy-prompt>Copy prompt</button>
     </div>
-    <textarea class="fix-prompt" id="fix-prompt" readonly spellcheck="false">${escapeHtml(prompt)}</textarea>
+    <textarea class="fix-prompt" id="fix-prompt" readonly spellcheck="false" aria-label="Generated prompt">${escapeHtml(prompt)}</textarea>
   </div>`;
 }
 
@@ -337,9 +446,10 @@ function buildFixPrompt(data) {
   lines.push('1. Return a single fenced HTML block containing every <meta>/<link>/<title> tag that should appear in <head>, in the order they should appear.');
   lines.push('2. Fill in plausible, high-quality values inferred from the page URL and existing content. If you genuinely cannot infer a value, use a clearly-marked TODO placeholder like content="TODO: short description (50–160 chars)".');
   lines.push('3. Respect recommended length ranges: <title> 10–60 chars, meta description 50–160, og:title 30–90, og:description 50–200, twitter:title ≤70.');
-  lines.push('4. Always include: <title>, meta description, canonical, viewport, charset, og:title, og:type, og:image (1200×630 recommended), og:url, og:description, og:site_name, og:logo, twitter:card (summary_large_image when an image is present), twitter:title, twitter:description, twitter:image.');
-  lines.push('5. All image URLs (og:image, og:logo, twitter:image) MUST end in an explicit file extension (.jpg, .jpeg, .png, .webp, .gif, .svg, or .avif). Some scrapers reject extensionless URLs.');
-  lines.push('6. After the HTML block, add a short bulleted "Notes" section explaining any non-obvious choices and listing every TODO the user still needs to fill in.');
+  lines.push('4. Always include: <title>, meta description, canonical, viewport, charset, og:title, og:type, og:image (1200×630 recommended), og:image:width, og:image:height, og:image:alt, og:url, og:description, og:site_name, og:locale, og:logo, twitter:card (summary_large_image when an image is present), twitter:title, twitter:description, twitter:image, twitter:image:alt.');
+  lines.push('5. All image URLs (og:image, og:logo, twitter:image) MUST be absolute https URLs ending in an explicit file extension (.jpg, .jpeg, .png, .webp, .gif, or .avif). Some scrapers reject relative or extensionless URLs, and most do not render SVG.');
+  lines.push('6. Emit each tag exactly once — remove duplicates, since scrapers only honour the first occurrence.');
+  lines.push('7. After the HTML block, add a short bulleted "Notes" section explaining any non-obvious choices and listing every TODO the user still needs to fill in.');
   return { prompt: lines.join('\n'), issueCount: issues.length };
 }
 
@@ -364,58 +474,64 @@ function collectCurrentTags(data) {
   return out;
 }
 
+// Returns [{ group, field, severity, message }]
 function collectIssues(data) {
   const issues = [];
-  const seoChecks = [
-    { field: '<title>', value: data.title, validate: v => validateLength(v, 10, 60) },
-    { field: 'meta description', value: metaByName(data.metas, 'description')?.content, validate: v => validateLength(v, 50, 160) },
-    { field: 'link[rel=canonical]', value: data.links.find(l => l.rel === 'canonical')?.href, validate: validatePresent },
-    { field: 'meta viewport', value: metaByName(data.metas, 'viewport')?.content, validate: validatePresent },
-    { field: 'html[lang]', value: data.lang, validate: validatePresent },
-    { field: 'meta robots', value: metaByName(data.metas, 'robots')?.content, validate: validateRobots }
-  ];
-  const ogChecks = [
-    { field: 'og:title', required: true, validate: v => validateLength(v, 30, 90) },
-    { field: 'og:type', required: true, validate: validatePresent },
-    { field: 'og:image', required: true, validate: validateImageUrl },
-    { field: 'og:url', required: true, validate: validateAbsoluteUrl },
-    { field: 'og:description', required: false, validate: v => validateLength(v, 50, 200) },
-    { field: 'og:site_name', required: false, validate: validatePresent },
-    { field: 'og:image:alt', required: false, validate: validatePresent },
-    { field: 'og:logo', required: false, validate: validateImageUrl }
-  ];
-  const twChecks = [
-    { field: 'twitter:card', required: true, validate: validatePresent },
-    { field: 'twitter:title', required: false, validate: v => validateLength(v, 30, 70) },
-    { field: 'twitter:description', required: false, validate: v => validateLength(v, 50, 200) },
-    { field: 'twitter:image', required: false, validate: validateImageUrl }
-  ];
 
-  for (const c of seoChecks) addIssue(issues, c.field, c.value, c.validate(c.value), true);
-  for (const c of ogChecks) {
-    const v = metaByProperty(data.metas, c.field)?.content;
-    addIssue(issues, c.field, v, c.validate(v), c.required);
+  for (const c of seoChecks(data)) {
+    addIssue(issues, 'seo', c.field, c.value, c.validate(c.value), true);
   }
-  for (const c of twChecks) {
-    const v = metaByTwitter(data.metas, c.field)?.content;
-    addIssue(issues, c.field, v, c.validate(v), c.required);
+  for (const f of ogFields()) {
+    const v = metaByProperty(data.metas, f.key)?.content;
+    addIssue(issues, 'og', f.key, v, f.validate(v), f.required);
+    addDuplicateIssue(issues, 'og', f.key, countOg(data.metas, f.key));
+  }
+  for (const f of twitterFields()) {
+    const v = metaByTwitter(data.metas, f.key)?.content;
+    addIssue(issues, 'twitter', f.key, v, f.validate(v), f.required);
+    addDuplicateIssue(issues, 'twitter', f.key, countTwitter(data.metas, f.key));
   }
   return issues;
 }
 
-function addIssue(issues, field, value, result, required) {
+function addIssue(issues, group, field, value, result, required) {
   if (result.level === 'ok') return;
   if (result.level === 'bad' && !required && !value) return;
   const severity = result.level === 'bad' ? 'ERROR' : 'WARN';
   const message = value
     ? `${result.text} (current: ${truncate(value, 120)})`
     : result.text;
-  issues.push({ field, severity, message });
+  issues.push({ group, field, severity, message });
 }
 
-function truncate(s, n) {
-  s = String(s);
-  return s.length > n ? s.slice(0, n - 1) + '…' : s;
+function addDuplicateIssue(issues, group, field, count) {
+  if (count > 1) issues.push({ group, field, severity: 'WARN', message: `declared ${count} times; scrapers only read the first` });
+}
+
+function updateTabBadges() {
+  const issues = collectIssues(pageData);
+  const totals = {};
+  for (const i of issues) {
+    totals[i.group] = totals[i.group] || { bad: 0, warn: 0 };
+    totals[i.group][i.severity === 'ERROR' ? 'bad' : 'warn']++;
+  }
+  totals.fix = issues.reduce((acc, i) => {
+    acc[i.severity === 'ERROR' ? 'bad' : 'warn']++;
+    return acc;
+  }, { bad: 0, warn: 0 });
+
+  tabs.forEach(t => {
+    const key = t.dataset.tab;
+    t.querySelector('.tab-badge')?.remove();
+    const tot = totals[key];
+    if (!tot || (tot.bad === 0 && tot.warn === 0)) return;
+    const badge = document.createElement('span');
+    const n = tot.bad || tot.warn;
+    badge.className = `tab-badge ${tot.bad ? 'bad' : 'warn'}`;
+    badge.textContent = String(n);
+    badge.title = `${tot.bad} error${tot.bad === 1 ? '' : 's'}, ${tot.warn} warning${tot.warn === 1 ? '' : 's'}`;
+    t.appendChild(badge);
+  });
 }
 
 function attachPromptCopyHandler() {
@@ -449,34 +565,57 @@ function renderPreviews(data) {
   const image = resolveUrl(og('og:image'), data.url);
   const siteName = og('og:site_name') || getDomain(data.url);
   const url = og('og:url') || data.url;
+  const declared = {
+    w: parseInt(og('og:image:width'), 10) || null,
+    h: parseInt(og('og:image:height'), 10) || null
+  };
 
   const twTitle = tw('twitter:title') || title;
   const twDesc = tw('twitter:description') || description;
   const twImage = resolveUrl(tw('twitter:image') || tw('twitter:image:src'), data.url) || image;
-  const twCard = tw('twitter:card') || 'summary';
+  const twCard = (tw('twitter:card') || (twImage ? 'summary_large_image' : 'summary')).toLowerCase();
+  const twVariant = twCard === 'summary' ? 'x-summary' : 'x-large';
+  const twLabel = `X / Twitter · ${twCard}${tw('twitter:card') ? '' : ' (no twitter:card, inferred)'}`;
 
   return `
-    ${cardBlock('Facebook / LinkedIn', '', { title, description, image, siteName, url })}
-    ${cardBlock('Twitter / X', twCard === 'summary' ? 'summary' : 'twitter', { title: twTitle, description: twDesc, image: twImage, siteName, url })}
+    ${cardBlock('Facebook / LinkedIn', 'facebook', { title, description, image, siteName, url, declared })}
+    ${cardBlock(twLabel, twVariant, { title: twTitle, description: twDesc, image: twImage, siteName, url })}
     ${cardBlock('Slack / Discord', 'slack', { title, description, image, siteName, url })}
   `;
 }
 
 function cardBlock(label, variant, c) {
   const imgSrc = bustCache(c.image);
+  const domain = getDomain(c.url) || c.siteName || '';
   const imgHtml = c.image
     ? `<img src="${escapeHtml(imgSrc)}" alt="" data-card-img>`
-    : `<span>no og:image</span>`;
+    : `<span>no ${variant === 'x-large' || variant === 'x-summary' ? 'twitter:image or og:image' : 'og:image'}</span>`;
   const placeholderClass = c.image ? '' : ' placeholder';
+  const declaredAttr = c.declared?.w && c.declared?.h ? ` data-declared="${c.declared.w}x${c.declared.h}"` : '';
+  const metaHtml = c.image
+    ? `<div class="image-meta" data-image-meta="${escapeHtml(imgSrc)}"${declaredAttr}>checking image…</div>`
+    : '';
+
+  // X's large-image card shows only the image with the domain overlaid; no title or description.
+  if (variant === 'x-large' && c.image) {
+    return `<div class="preview-section">
+      <div class="preview-label">${escapeHtml(label)}</div>
+      <div class="card x-large">
+        <div class="card-image">${imgHtml}<div class="card-overlay">${escapeHtml(domain)}</div></div>
+        <div class="card-body compact">${metaHtml}<div class="card-hint">X shows only the image and domain for summary_large_image; title and description are not displayed.</div></div>
+      </div>
+    </div>`;
+  }
+
   return `<div class="preview-section">
     <div class="preview-label">${escapeHtml(label)}</div>
     <div class="card ${variant}">
       <div class="card-image${placeholderClass}">${imgHtml}</div>
       <div class="card-body">
-        <div class="card-domain">${escapeHtml(getDomain(c.url) || c.siteName || '')}</div>
+        <div class="card-domain">${escapeHtml(domain)}</div>
         <div class="card-title">${escapeHtml(c.title || 'No title')}</div>
         <p class="card-desc">${escapeHtml(c.description || 'No description')}</p>
-        ${c.image ? `<div class="image-meta" data-image-meta="${escapeHtml(imgSrc)}">checking image…</div>` : ''}
+        ${metaHtml}
       </div>
     </div>
   </div>`;
@@ -494,11 +633,15 @@ function attachImageHandlers() {
 
 // --- Field rendering ---
 
-function renderFieldList(label, fields, getter) {
+function renderFieldList(label, fields, getter, counter) {
   const rows = fields.map(f => {
     const value = getter(f.key);
     let result = f.validate(value);
     if (!value && !f.required) result = { level: 'warn', text: 'missing (optional)' };
+    const dupes = counter ? counter(f.key) : 0;
+    if (dupes > 1 && result.level === 'ok') {
+      result = { level: 'warn', text: `declared ${dupes} times; scrapers read the first` };
+    }
     return renderFieldRow(f.key, value, result, f.note);
   });
   return `<div class="section">
@@ -508,13 +651,14 @@ function renderFieldList(label, fields, getter) {
 }
 
 function renderFieldRow(name, value, status, note) {
-  const icon = status.level === 'ok' ? '●' : status.level === 'warn' ? '●' : '○';
+  const icon = status.level === 'bad' ? '○' : '●';
+  const labelText = status.level === 'ok' ? 'OK' : status.level === 'warn' ? 'Warning' : 'Error';
   const valHtml = value
     ? `<span>${escapeHtml(value)}</span>`
     : `<span class="missing">missing</span>`;
   const noteHtml = note ? `<div class="field-note">${escapeHtml(note)}</div>` : '';
   return `<div class="field-row">
-    <div class="field-status ${status.level}" title="${escapeHtml(status.text)}">${icon}</div>
+    <div class="field-status ${status.level}" title="${escapeHtml(labelText + ': ' + status.text)}" aria-label="${escapeHtml(labelText)}">${icon}</div>
     <div class="field-name">${escapeHtml(name)}<div class="field-note">${escapeHtml(status.text)}</div></div>
     <div class="field-content${value ? '' : ' missing'}">${valHtml}${noteHtml}</div>
   </div>`;
@@ -526,7 +670,7 @@ function tagRow(key, value) {
     <div class="tag-key">${escapeHtml(key)}</div>
     <div class="tag-value${display ? '' : ' empty'}">${display ? escapeHtml(display) : '(empty)'}</div>
     <div class="tag-actions">
-      <button class="copy-btn" data-copy="${escapeHtml(display)}">copy</button>
+      <button class="copy-btn" data-copy="${escapeHtml(display)}" aria-label="Copy value of ${escapeHtml(key)}">copy</button>
     </div>
   </div>`;
 }
@@ -555,16 +699,23 @@ function attachCopyHandlers() {
 function loadImageMeta() {
   contentEl.querySelectorAll('[data-image-meta]').forEach(el => {
     const url = el.dataset.imageMeta;
+    const declared = el.dataset.declared;
     const img = new Image();
     img.onload = () => {
       const w = img.naturalWidth;
       const h = img.naturalHeight;
-      let advice = '';
-      if (w < 200 || h < 200) advice = ' · too small for FB (min 200×200)';
-      else if (w < 1200 || h < 630) advice = ' · below recommended 1200×630';
-      el.textContent = `${w} × ${h}${advice}`;
+      const ratio = h ? (w / h).toFixed(2) : '?';
+      const notes = [];
+      if (w < 200 || h < 200) notes.push('too small for Facebook (min 200×200)');
+      else if (w < 1200 || h < 630) notes.push('below recommended 1200×630');
+      if (declared && declared !== `${w}x${h}`) notes.push(`og:image:width/height say ${declared.replace('x', '×')}`);
+      el.textContent = `${w} × ${h} (${ratio}:1)${notes.length ? ' · ' + notes.join(' · ') : ''}`;
+      el.classList.toggle('warn', notes.length > 0);
     };
-    img.onerror = () => { el.textContent = 'image failed to load'; };
+    img.onerror = () => {
+      el.textContent = 'image failed to load';
+      el.classList.add('warn');
+    };
     img.src = url;
   });
 }

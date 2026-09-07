@@ -6,8 +6,8 @@ Built by [En Dash](https://endash.us).
 
 ## What it does
 
-- **Previews** — see exactly how the page will render when shared on Facebook/LinkedIn, Twitter/X, and Slack/Discord.
-- **Open Graph, Twitter, SEO tabs** — per-tag validation with recommended length ranges and required-field checks.
+- **Previews** — see exactly how the page will render when shared on Facebook/LinkedIn, X/Twitter (summary and large-image cards, matching X's image-plus-domain layout), and Slack/Discord. Image dimensions are checked against Facebook's minimums and against declared `og:image:width/height`.
+- **Open Graph, Twitter, SEO tabs** — per-tag validation: length ranges, required fields, absolute-URL and file-extension checks on images, value-format checks (`og:type`, `og:locale`, `twitter:card`, `@handles`), canonical-vs-URL mismatch, `noindex` detection, and duplicate-tag warnings. Each tab shows an issue count badge.
 - **All tags** — a flat, searchable view of every `<meta>` and `<link rel>` on the page, with one-click copy.
 - **Fix tab** — auto-generated LLM prompt that lists the page's current tags, the specific issues detected, and asks for a complete corrected `<head>` block you can paste into your site.
 
