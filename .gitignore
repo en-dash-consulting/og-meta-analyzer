@@ -15,3 +15,5 @@ dist/
 node_modules/
 .rex/prd.json.backup-*
 .rex/prd.json.migrated
+.n-dx.local.json
+claude_commands.log

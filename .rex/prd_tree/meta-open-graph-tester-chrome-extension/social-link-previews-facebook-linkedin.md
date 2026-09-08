@@ -1,0 +1,23 @@
+---
+id: "b90b33bb-f7c2-487b-b3e8-96e94db3c3d3"
+level: "feature"
+title: "Social link previews (Facebook/LinkedIn, X, Slack/Discord)"
+status: "completed"
+priority: "high"
+source: "ndx-plan"
+startedAt: "2026-09-08T03:56:52.198Z"
+completedAt: "2026-09-08T03:56:52.198Z"
+endedAt: "2026-09-08T03:56:52.198Z"
+resolutionType: "code-change"
+resolutionDetail: "Shipped in renderPreviews/cardBlock/loadImageMeta; X card layout corrected in commit 997e37c"
+acceptanceCriteria:
+  - "Facebook/LinkedIn card shows image, domain, title, description"
+  - "X large-image card shows only image and domain overlay with a note that title/description are not displayed"
+  - "X summary card shows square thumbnail beside title/description"
+  - "Slack/Discord card shows 80px thumbnail beside text"
+  - "Image meta line shows W × H and ratio, and warns on small size or declared-size mismatch"
+  - "Missing or failed images show a placeholder rather than a broken image"
+description: "Previews tab renders three mockups from the page's actual tags with fallbacks (og:title → title, og:description → meta description, twitter:image → twitter:image:src → og:image). The X card follows X's current rendering: summary_large_image shows image plus domain overlay only; summary shows a square thumbnail with title/description. Card type is inferred when twitter:card is absent. Each loaded image reports its dimensions and aspect ratio, warns below Facebook's 200×200 minimum or the 1200×630 recommendation, and flags mismatch with declared og:image:width/height."
+lastModified: "2026-09-08T03:56:52.209Z"
+lastModifiedBy: "Nick Daniel <nick@endash.us>"
+---

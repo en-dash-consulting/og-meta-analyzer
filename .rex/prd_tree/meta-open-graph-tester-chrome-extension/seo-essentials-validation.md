@@ -1,0 +1,21 @@
+---
+id: "b358b1b7-9d52-4d11-9899-f038f3aa0550"
+level: "feature"
+title: "SEO essentials validation"
+status: "completed"
+priority: "medium"
+source: "ndx-plan"
+startedAt: "2026-09-08T03:56:57.377Z"
+completedAt: "2026-09-08T03:56:57.377Z"
+endedAt: "2026-09-08T03:56:57.377Z"
+resolutionType: "code-change"
+resolutionDetail: "Shipped in seoChecks/renderSEO; canonical mismatch, robots, favicon checks added in commit 997e37c"
+acceptanceCriteria:
+  - "Canonical that differs from the current URL produces a warning"
+  - "robots containing noindex or none produces a warning; a missing robots tag is OK"
+  - "Missing viewport, charset, or lang produce errors"
+  - "Missing favicon produces a warning"
+description: "SEO tab checks title (10–60), meta description (50–160), canonical (absolute, and compared against the current URL ignoring hash and trailing slash), robots (noindex/none warns; absence is OK), viewport, charset (meta charset or http-equiv content-type), html[lang], and favicon (link rel icon / shortcut icon / apple-touch-icon; absence warns because browsers fall back to /favicon.ico)."
+lastModified: "2026-09-08T03:56:57.388Z"
+lastModifiedBy: "Nick Daniel <nick@endash.us>"
+---

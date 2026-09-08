@@ -1,0 +1,20 @@
+---
+id: "4bf1202b-2ecc-4b6a-93bb-2b65c8364692"
+level: "feature"
+title: "CI packaging and GitHub Releases"
+status: "completed"
+priority: "high"
+source: "ndx-plan"
+startedAt: "2026-09-08T03:57:04.181Z"
+completedAt: "2026-09-08T03:57:04.181Z"
+endedAt: "2026-09-08T03:57:04.181Z"
+resolutionType: "code-change"
+resolutionDetail: "Shipped in .github/workflows/release.yml; sanity checks and zip exclusions added in commit 4953cdd"
+acceptanceCriteria:
+  - "Tag vX.Y.Z that does not match manifest version fails the build with a clear error"
+  - "Zip contains only manifest.json, popup.html, popup.css, popup.js, icons/"
+  - "Release is created automatically on tag push with the zip attached"
+description: "GitHub Actions workflow 'build' runs on push to main, pull requests, and v* tags. It sanity-checks manifest.json, syntax-checks popup.js, verifies every manifest-referenced file exists, asserts the tag matches the manifest version, zips only the shipped files (excluding .DS_Store), uploads an artifact, and on tags creates a GitHub Release with install instructions. Token permissions are read-only except for the release job."
+lastModified: "2026-09-08T03:57:04.192Z"
+lastModifiedBy: "Nick Daniel <nick@endash.us>"
+---

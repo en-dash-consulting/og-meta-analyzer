@@ -1,0 +1,21 @@
+---
+id: "b5b2ab34-827d-4b8c-a42a-3fe9fd7c0fa0"
+level: "feature"
+title: "LLM fix prompt generator"
+status: "completed"
+priority: "high"
+source: "ndx-plan"
+startedAt: "2026-09-08T03:57:02.878Z"
+completedAt: "2026-09-08T03:57:02.878Z"
+endedAt: "2026-09-08T03:57:02.878Z"
+resolutionType: "code-change"
+resolutionDetail: "Shipped in renderFix/buildFixPrompt/collectIssues"
+acceptanceCriteria:
+  - "Issue count in the summary matches the badge on the Fix tab"
+  - "Prompt lists every detected issue with severity and current value truncated to 120 chars"
+  - "Copy button writes the full prompt to the clipboard and shows 'Copied!'"
+  - "Zero-issue pages still produce a prompt asking for improvements"
+description: "Fix tab aggregates every issue from the SEO, Open Graph, and Twitter checks (including duplicates) into a structured prompt: page URL/title/lang, current relevant tags, an ERROR/WARN issue list, and output requirements (single fenced HTML block, length ranges, required tag set, absolute https images with raster extensions, no duplicates, notes section with TODOs). One-click copy to clipboard with fallback to select-all."
+lastModified: "2026-09-08T03:57:02.889Z"
+lastModifiedBy: "Nick Daniel <nick@endash.us>"
+---

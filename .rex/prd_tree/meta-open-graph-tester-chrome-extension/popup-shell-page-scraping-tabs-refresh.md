@@ -1,0 +1,22 @@
+---
+id: "80779d2b-01f8-44d8-adc2-feb541a71e93"
+level: "feature"
+title: "Popup shell: page scraping, tabs, refresh"
+status: "completed"
+priority: "high"
+source: "ndx-plan"
+startedAt: "2026-09-08T03:56:50.735Z"
+completedAt: "2026-09-08T03:56:50.735Z"
+endedAt: "2026-09-08T03:56:50.735Z"
+resolutionType: "code-change"
+resolutionDetail: "Shipped in popup.js init/scrapePage/selectTab; hardened in commit 4953cdd"
+acceptanceCriteria:
+  - "Non-http(s) pages (chrome://, file://, Web Store, extensions) show an explanatory error instead of failing"
+  - "Scrape returns url, title, lang, metas[], links[] with values trimmed"
+  - "Tabs are keyboard navigable with arrow keys and expose role=tab / aria-selected"
+  - "Refresh button re-reads the page and bypasses the image cache"
+  - "Pages Chrome refuses to script show a plain-language error"
+description: "Core popup infrastructure. On open, queries the active tab, rejects non-http(s) URLs with a clear message, and runs a one-shot chrome.scripting.executeScript that returns title, html[lang], every meta tag's attributes, and every link[rel]. Tab bar switches renderers; a refresh button re-scrapes and appends a cache-busting query param to preview images."
+lastModified: "2026-09-08T03:56:50.747Z"
+lastModifiedBy: "Nick Daniel <nick@endash.us>"
+---

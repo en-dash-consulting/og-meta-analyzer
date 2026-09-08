@@ -1,0 +1,21 @@
+---
+id: "666a22f3-825a-4e4a-9b12-a4890150b6ab"
+level: "feature"
+title: "Store readiness: manifest hardening, privacy policy, listing copy"
+status: "completed"
+priority: "high"
+source: "ndx-plan"
+startedAt: "2026-09-08T03:57:05.684Z"
+completedAt: "2026-09-08T03:57:05.684Z"
+endedAt: "2026-09-08T03:57:05.684Z"
+resolutionType: "code-change"
+resolutionDetail: "manifest.json, PRIVACY.md, docs/PUBLISHING.md, docs/store-listing.md; completed in commit 4953cdd"
+acceptanceCriteria:
+  - "manifest.json includes minimum_chrome_version and homepage_url"
+  - "PRIVACY.md exists and is linked from README and the publishing checklist"
+  - "Short description is under 132 characters"
+  - "Permission justifications exist for activeTab and scripting"
+description: "Manifest declares minimum_chrome_version 92 (required for executeScript's func parameter), homepage_url, four icon sizes, and only activeTab + scripting permissions. PRIVACY.md documents that nothing leaves the browser. docs/store-listing.md holds paste-ready name, short and detailed descriptions, category, and language. docs/PUBLISHING.md is the submission checklist with permission justifications and the single-purpose statement."
+lastModified: "2026-09-08T03:57:05.695Z"
+lastModifiedBy: "Nick Daniel <nick@endash.us>"
+---
