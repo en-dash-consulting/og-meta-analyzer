@@ -49,16 +49,30 @@ The script loads the extension into a throwaway browser profile, opens the targe
   - `scripting` — "Needed to execute a one-shot DOM read on the active tab to collect `<meta>` and `<link>` tags for display in the popup."
   - Single purpose: "Inspect and validate social-sharing, Open Graph, Twitter Card, and SEO meta tags on the current page."
 
+## Verify the package before uploading
+
+Never upload a zip you have not loaded. This unpacks the artifact, loads it into a throwaway browser profile, and drives every tab, so a file missing from the zip or a runtime error surfaces before Google sees it:
+
+```bash
+npm i --no-save puppeteer-core
+node scripts/verify-release.js                     # latest GitHub release (needs gh)
+node scripts/verify-release.js --tag=v0.1.0
+node scripts/verify-release.js --zip=dist/local.zip
+```
+
+It also asserts the shipped manifest: Manifest V3, an X.Y.Z version, all four icon sizes, and no permissions beyond `activeTab` and `scripting`. Exit code is non-zero on any failure. Like the screenshot script it needs Brave or Chromium, since Chrome 137+ dropped `--load-extension`.
+
 ## Submission steps
 
 1. Build a release: push a `v*` tag; GitHub Actions produces `og-meta-analyzer-vX.Y.Z.zip` on the Release page.
-2. Go to <https://chrome.google.com/webstore/devconsole> and click **Add new item**.
-3. Upload the zip.
-4. Fill in the text fields from `docs/store-listing.md`.
-5. Upload the store icon (already 128×128 in `icons/icon-128.png`) and the four screenshots from `docs/store-assets/` in numeric order.
-6. Paste the privacy policy URL and the permission justifications above.
-7. Under **Distribution**, choose public and select target regions (typically all).
-8. Click **Submit for review**. Initial review usually takes 1–3 business days; sometimes longer for new publishers.
+2. Verify it with `node scripts/verify-release.js` (above).
+3. Go to <https://chrome.google.com/webstore/devconsole> and click **Add new item**.
+4. Upload the zip.
+5. Fill in the text fields from `docs/store-listing.md`.
+6. Upload the store icon (already 128×128 in `icons/icon-128.png`) and the four screenshots from `docs/store-assets/` in numeric order.
+7. Paste the privacy policy URL and the permission justifications above.
+8. Under **Distribution**, choose public and select target regions (typically all).
+9. Click **Submit for review**. Initial review usually takes 1–3 business days; sometimes longer for new publishers.
 
 ## Updating an existing listing
 

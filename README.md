@@ -58,6 +58,7 @@ This is a zero-build Manifest V3 extension — just HTML, CSS, and JS. To work o
 2. Commit and push.
 3. Tag the commit: `git tag v0.2.0 && git push origin v0.2.0`.
 4. GitHub Actions builds the zip and publishes a Release automatically.
+5. Verify the artifact before uploading it anywhere: `node scripts/verify-release.js` loads the released zip in a real browser and drives every tab.
 
 ## Publishing to the Chrome Web Store
 
