@@ -8,13 +8,23 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+
+      - name: Sanity checks
+        run: |
+          jq -e '.manifest_version == 3' manifest.json > /dev/null
+          node --check popup.js
+          for f in $(jq -r '.icons[]' manifest.json) popup.html popup.css popup.js; do
+            test -f "$f" || { echo "::error::Missing file referenced by manifest: $f"; exit 1; }
+          done
 
       - name: Read manifest version
         id: manifest
@@ -37,7 +47,7 @@ jobs:
         run: |
           mkdir -p dist
           ZIP_NAME="og-meta-analyzer-v${{ steps.manifest.outputs.version }}.zip"
-          zip -r "dist/$ZIP_NAME" manifest.json popup.html popup.css popup.js icons/
+          zip -r "dist/$ZIP_NAME" manifest.json popup.html popup.css popup.js icons/ -x "*.DS_Store" "__MACOSX/*"
           echo "zip_name=$ZIP_NAME" >> "$GITHUB_ENV"
           unzip -l "dist/$ZIP_NAME"
 

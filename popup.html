@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="color-scheme" content="light dark">
   <title>Meta & OG Tester</title>
   <link rel="stylesheet" href="popup.css">
 </head>
@@ -12,16 +13,16 @@
       <button class="refresh-btn" id="refresh-btn" title="Re-read page and bypass image cache" aria-label="Refresh">↻</button>
     </div>
     <nav class="tabs" role="tablist">
-      <button class="tab active" data-tab="previews">Previews</button>
-      <button class="tab" data-tab="og">Open Graph</button>
-      <button class="tab" data-tab="twitter">Twitter</button>
-      <button class="tab" data-tab="seo">SEO</button>
-      <button class="tab" data-tab="all">All</button>
-      <button class="tab" data-tab="fix">Fix</button>
+      <button class="tab active" role="tab" aria-selected="true" data-tab="previews">Previews</button>
+      <button class="tab" role="tab" aria-selected="false" tabindex="-1" data-tab="og">Open Graph</button>
+      <button class="tab" role="tab" aria-selected="false" tabindex="-1" data-tab="twitter">Twitter</button>
+      <button class="tab" role="tab" aria-selected="false" tabindex="-1" data-tab="seo">SEO</button>
+      <button class="tab" role="tab" aria-selected="false" tabindex="-1" data-tab="all">All</button>
+      <button class="tab" role="tab" aria-selected="false" tabindex="-1" data-tab="fix">Fix</button>
     </nav>
   </header>
 
-  <main id="content">
+  <main id="content" aria-live="polite">
     <div class="loading">Reading page…</div>
   </main>
 

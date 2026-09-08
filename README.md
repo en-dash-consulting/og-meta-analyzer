@@ -6,8 +6,8 @@ Built by [En Dash](https://endash.us).
 
 ## What it does
 
-- **Previews** — see exactly how the page will render when shared on Facebook/LinkedIn, Twitter/X, and Slack/Discord.
-- **Open Graph, Twitter, SEO tabs** — per-tag validation with recommended length ranges and required-field checks.
+- **Previews** — see exactly how the page will render when shared on Facebook/LinkedIn, X/Twitter (summary and large-image cards, matching X's image-plus-domain layout), and Slack/Discord. Image dimensions are checked against Facebook's minimums and against declared `og:image:width/height`.
+- **Open Graph, Twitter, SEO tabs** — per-tag validation: length ranges, required fields, absolute-URL and file-extension checks on images, value-format checks (`og:type`, `og:locale`, `twitter:card`, `@handles`), canonical-vs-URL mismatch, `noindex` detection, and duplicate-tag warnings. Each tab shows an issue count badge.
 - **All tags** — a flat, searchable view of every `<meta>` and `<link rel>` on the page, with one-click copy.
 - **Fix tab** — auto-generated LLM prompt that lists the page's current tags, the specific issues detected, and asks for a complete corrected `<head>` block you can paste into your site.
 
@@ -33,7 +33,7 @@ cd og-meta-analyzer
 
 ## Usage
 
-Click the extension icon on any `http://` or `https://` page. The popup opens with five tabs:
+Click the extension icon on any `http://` or `https://` page. The popup opens with six tabs:
 
 - **Previews** — social-card mockups.
 - **Open Graph** / **Twitter** / **SEO** — per-tag status.
@@ -48,6 +48,10 @@ This is a zero-build Manifest V3 extension — just HTML, CSS, and JS. To work o
 2. `chrome://extensions` → **Load unpacked** → select the repo root.
 3. Edit `popup.html`, `popup.css`, `popup.js`. Hit the refresh icon on the extension card in `chrome://extensions` to pick up changes.
 
+### Store screenshots
+
+`node scripts/store-screenshots.js` regenerates the 1280×800 Chrome Web Store screenshots in `docs/store-assets/` (needs `npm i --no-save puppeteer-core` and Brave or Chromium; see `docs/PUBLISHING.md`).
+
 ### Releasing a new version
 
 1. Bump `version` in `manifest.json`.
@@ -58,6 +62,10 @@ This is a zero-build Manifest V3 extension — just HTML, CSS, and JS. To work o
 ## Publishing to the Chrome Web Store
 
 See [`docs/PUBLISHING.md`](docs/PUBLISHING.md) for the submission checklist and [`docs/store-listing.md`](docs/store-listing.md) for ready-to-paste listing copy.
+
+## Privacy
+
+Everything runs locally. The extension reads tags from the current tab only when you open the popup and never sends data anywhere. See [`PRIVACY.md`](PRIVACY.md).
 
 ## License
 

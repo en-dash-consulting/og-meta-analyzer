@@ -1,0 +1,21 @@
+---
+id: "e4d3eeac-6648-4c4f-9618-ab17e54eb2d5"
+level: "feature"
+title: "All-tags view with filter and copy"
+status: "completed"
+priority: "medium"
+source: "ndx-plan"
+startedAt: "2026-09-08T03:56:59.105Z"
+completedAt: "2026-09-08T03:56:59.105Z"
+endedAt: "2026-09-08T03:56:59.105Z"
+resolutionType: "code-change"
+resolutionDetail: "Shipped in renderAll/attachFilterHandler/tagRow; filter added in commit 997e37c"
+acceptanceCriteria:
+  - "Every meta and link[rel] on the page appears exactly once"
+  - "Typing in the filter narrows rows live and keeps focus and caret position"
+  - "Copy button copies the raw value and shows transient 'copied' feedback"
+  - "Empty filter result shows 'No tags match.'"
+description: "All tab lists title, html[lang], every meta (keyed by property, name, http-equiv, or charset) and every link[rel] with type/sizes, each with a one-click copy button. A filter input narrows rows by name or value and shows 'N of M'."
+lastModified: "2026-09-08T03:56:59.116Z"
+lastModifiedBy: "Nick Daniel <nick@endash.us>"
+---

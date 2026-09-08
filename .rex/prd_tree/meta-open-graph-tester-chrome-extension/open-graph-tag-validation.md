@@ -1,0 +1,22 @@
+---
+id: "2bc40f3e-7b98-43f0-aec6-601f73f5e954"
+level: "feature"
+title: "Open Graph tag validation"
+status: "completed"
+priority: "high"
+source: "ndx-plan"
+startedAt: "2026-09-08T03:56:53.866Z"
+completedAt: "2026-09-08T03:56:53.866Z"
+endedAt: "2026-09-08T03:56:53.866Z"
+resolutionType: "code-change"
+resolutionDetail: "Shipped in ogFields/renderOpenGraph and validators; format and duplicate checks added in commit 997e37c"
+acceptanceCriteria:
+  - "Required fields (og:title, og:type, og:image, og:url) show an error when missing"
+  - "Optional fields show 'missing (optional)' as a warning"
+  - "Relative, http, SVG, or extensionless og:image values produce a warning with guidance"
+  - "Duplicate og:* tags are flagged with the count"
+  - "Tab label shows a badge with the error or warning count"
+description: "Open Graph tab lists og:title, og:type, og:image, og:url, og:description, og:site_name, og:locale, og:image:alt, og:image:width, og:image:height, og:logo with per-field status. Checks: length ranges (title 30–90, description 50–200), og:type against the standard vocabulary, og:locale format xx_XX, integer image dimensions, and image URLs that are absolute https with a raster file extension (SVG and http warn). Duplicate tags warn since scrapers read the first only. Optional-but-missing fields show as warnings, not errors."
+lastModified: "2026-09-08T03:56:53.877Z"
+lastModifiedBy: "Nick Daniel <nick@endash.us>"
+---

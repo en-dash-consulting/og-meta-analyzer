@@ -1,0 +1,21 @@
+---
+id: "84acf48c-3819-48ea-a1c6-da611d9bcea9"
+level: "feature"
+title: "Twitter Card tag validation"
+status: "completed"
+priority: "high"
+source: "ndx-plan"
+startedAt: "2026-09-08T03:56:55.213Z"
+completedAt: "2026-09-08T03:56:55.213Z"
+endedAt: "2026-09-08T03:56:55.213Z"
+resolutionType: "code-change"
+resolutionDetail: "Shipped in twitterFields/renderTwitter; card enum and handle checks added in commit 997e37c"
+acceptanceCriteria:
+  - "twitter:card missing is an error; unknown value is a warning listing valid values"
+  - "twitter:site / twitter:creator without a leading @ warn"
+  - "Tags declared with property= instead of name= are still found"
+  - "Duplicate twitter:* tags are flagged"
+description: "Twitter tab lists twitter:card, twitter:title, twitter:description, twitter:image, twitter:image:alt, twitter:site, twitter:creator. Tags are matched on either name= or property= since both appear in the wild. twitter:card must be one of summary, summary_large_image, app, player. Handles must be @-prefixed. Image URL checks match the Open Graph rules. Notes explain og:* fallbacks."
+lastModified: "2026-09-08T03:56:55.224Z"
+lastModifiedBy: "Nick Daniel <nick@endash.us>"
+---
