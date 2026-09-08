@@ -48,6 +48,10 @@ This is a zero-build Manifest V3 extension — just HTML, CSS, and JS. To work o
 2. `chrome://extensions` → **Load unpacked** → select the repo root.
 3. Edit `popup.html`, `popup.css`, `popup.js`. Hit the refresh icon on the extension card in `chrome://extensions` to pick up changes.
 
+### Store screenshots
+
+`node scripts/store-screenshots.js` regenerates the 1280×800 Chrome Web Store screenshots in `docs/store-assets/` (needs `npm i --no-save puppeteer-core` and Brave or Chromium; see `docs/PUBLISHING.md`).
+
 ### Releasing a new version
 
 1. Bump `version` in `manifest.json`.

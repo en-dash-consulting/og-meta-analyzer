@@ -19,6 +19,6 @@ lastModifiedBy: "Nick Daniel <nick@endash.us>"
 
 | Title | Status |
 |-------|--------|
-| [Capture store screenshots (Previews and Fix tabs)](./capture-store-screenshots-previews-and.md) | pending |
+| [Capture store screenshots (Previews and Fix tabs)](./capture-store-screenshots-previews-and.md) | completed |
 | [Push main, tag v0.1.0, confirm Release zip](./push-main-tag-v0-1-0-confirm-release-zip.md) | pending |
 | [Submit listing in Chrome Web Store developer console](./submit-listing-in-chrome-web-store.md) | pending |
