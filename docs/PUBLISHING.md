@@ -42,7 +42,13 @@ The script loads the extension into a throwaway browser profile, opens the targe
 
 ### Privacy
 
-- [x] **Privacy policy** — the policy text lives in [`PRIVACY.md`](../PRIVACY.md). Use `https://github.com/en-dash-consulting/og-meta-analyzer/blob/main/PRIVACY.md` as the privacy policy URL (or host a copy at `https://endash.us/og-meta-analyzer/privacy`).
+- [x] **Privacy policy** — the policy text lives in [`PRIVACY.md`](../PRIVACY.md). Paste this URL into the store form:
+
+  ```
+  https://github.com/en-dash-consulting/og-meta-analyzer/blob/main/PRIVACY.md
+  ```
+
+  It resolves today. `https://endash.us/og-meta-analyzer/privacy` is **not** live — only use an endash.us URL after you have actually published the page there, since review fails on a privacy policy URL that 404s.
 - [ ] **Data usage disclosures** — in the dev console "Privacy practices" tab, certify that the extension does **not** collect or use any user data, does not sell data, and does not use data for unrelated purposes.
 - [ ] **Permission justifications** — you'll be asked to justify each permission in `manifest.json`:
   - `activeTab` — "Needed to read `<meta>` and `<link>` tags from the page the user is currently viewing when they open the popup."
