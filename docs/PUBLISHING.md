@@ -6,8 +6,28 @@ End-to-end checklist for getting Meta & Open Graph Tester listed in the Chrome W
 
 1. **Create a Chrome Web Store developer account.** Go to <https://chrome.google.com/webstore/devconsole>. Sign in with the Google account that will own the listing (recommended: a dedicated En Dash Google Workspace account, not a personal one).
 2. **Pay the one-time $5 registration fee.** Required by Google.
-3. **Verify the publisher identity.** Google will ask for contact email and may require domain verification if you want "by En Dash" to appear as the publisher. Add `endash.us` as a verified domain via Google Search Console if you want publisher badging.
-4. **(Optional) Add the repo to a Google Group** or service-account-owned account so the listing survives personnel changes.
+3. **Answer the trader declaration.** See the section below — it needs details you should settle before you start.
+4. **Verify the publisher identity.** Google will ask for contact email and may require domain verification if you want "by En Dash" to appear as the publisher. Add `endash.us` as a verified domain via Google Search Console if you want publisher badging.
+5. **(Optional) Add the repo to a Google Group** or service-account-owned account so the listing survives personnel changes.
+
+### Trader declaration (EEA) — decide this before you start
+
+The console asks whether the publisher is a **trader** or **non-trader** under European Economic Area consumer protection law.
+
+**Choose trader.** The test is whether the publisher acts for business purposes, not whether the extension costs money. This one ships under the En Dash brand, credits En Dash in the README, and points at endash.us, so it is business activity. Non-trader would be a false declaration, and Google tells users that consumer protection rights do not apply to non-trader listings.
+
+Trader accounts must supply, and Google **publishes at the bottom of the listing**:
+
+| Field         | Notes                                                             |
+| ------------- | ----------------------------------------------------------------- |
+| Legal name    | The business name, e.g. En Dash                                    |
+| Address       | Physical address, shown publicly — do not use a home address       |
+| Email         | e.g. nick@endash.us                                                |
+| Phone number  | Mandatory, SMS-verified, shown publicly — do not use a personal mobile |
+
+The phone number does not have to be a mobile line. Google's trader FAQ explicitly allows numbers from telecom and VoIP providers including Google Voice, so set one up and forward it. If a Google Voice number is rejected during SMS verification, a paid VoIP line will go through.
+
+Sources: [Trader FAQ](https://developer.chrome.com/docs/webstore/program-policies/trader-verification-faq), [Trader/non-trader disclosure policy](https://developer.chrome.com/docs/webstore/program-policies/trader-disclosure).
 
 ## Assets you need before submitting
 
@@ -72,7 +92,7 @@ It also asserts the shipped manifest: Manifest V3, an X.Y.Z version, all four ic
 
 1. Build a release: push a `v*` tag; GitHub Actions produces `og-meta-analyzer-vX.Y.Z.zip` on the Release page.
 2. Verify it with `node scripts/verify-release.js` (above).
-3. Go to <https://chrome.google.com/webstore/devconsole> and click **Add new item**.
+3. Go to <https://chrome.google.com/webstore/devconsole> and click **Add new item**. (The trader declaration must already be answered; see the one-time setup section.)
 4. Upload the zip.
 5. Fill in the text fields from `docs/store-listing.md`.
 6. Upload the store icon (already 128×128 in `icons/icon-128.png`) and the four screenshots from `docs/store-assets/` in numeric order.
