@@ -22,5 +22,6 @@ lastModifiedBy: "Nick Daniel <nick@endash.us>"
 | Title | Status |
 |-------|--------|
 | [Chrome Web Store initial submission (v0.1.0)](./chrome-web-store-initial-submission-v0/index.md) | pending |
+| [Automate Chrome Web Store uploads via the publish API](./automate-chrome-web-store-uploads-via.md) | pending |
 | [CI packaging and GitHub Releases](./ci-packaging-and-github-releases.md) | completed |
 | [Store readiness: manifest hardening, privacy policy, listing copy](./store-readiness-manifest-hardening.md) | completed |
